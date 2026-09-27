@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>DocGuard</title>
+  <meta name="description" content="Track when your important documents expire and get SMS reminders.">
+  <meta name="theme-color" content="#0f6e5c">
+  <meta name="referrer" content="no-referrer">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" href="/icons/favicon.png">
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="DocGuard">
+  <link rel="stylesheet" href="/styles.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <!-- Privacy screen shown when the app is in the background -->
+  <div id="privacy-screen" hidden><img src="/icons/icon-192.png" alt=""><p>DocGuard is locked while in the background</p></div>
+
+  <!-- ============ LOGIN / REGISTER ============ -->
+  <main id="auth-view" class="auth" hidden>
+    <div class="auth-card">
+      <img class="auth-logo" src="/icons/icon-192.png" alt="">
+      <h1>DocGuard</h1>
+      <p class="muted">Never miss a passport, licence or insurance renewal again.</p>
+
+      <div class="tabs" role="tablist">
+        <button class="tab active" data-auth-tab="login" role="tab">Log in</button>
+        <button class="tab" data-auth-tab="register" role="tab">Create account</button>
+      </div>
+
+      <form id="login-form" class="stack">
+        <label>Email<input name="email" type="email" autocomplete="username" required></label>
+        <label>Password<input name="password" type="password" autocomplete="current-password" required></label>
+        <button class="btn primary" type="submit">Log in</button>
+      </form>
+
+      <form id="register-form" class="stack" hidden>
+        <label>Your name<input name="name" autocomplete="name" required minlength="2"></label>
+        <label>Email<input name="email" type="email" autocomplete="username" required></label>
+        <label>Password<input name="password" type="password" autocomplete="new-password" required minlength="8">
+          <small class="muted">At least 8 characters with letters and numbers.</small></label>
+        <button class="btn primary" type="submit">Create account</button>
+      </form>
+
+      <ul class="privacy-points">
+        <li>🔒 Document details are encrypted before they are saved</li>
+        <li>🙈 Numbers are hidden unless you enter your password</li>
+        <li>📵 No photos or scans are stored — ever</li>
+      </ul>
+    </div>
+  </main>
+
+  <!-- ============ MAIN APP ============ -->
+  <div id="app-view" hidden>
+    <header class="topbar">
+      <div class="brand"><img src="/icons/icon-192.png" alt=""><span>DocGuard</span></div>
+      <nav>
+        <button class="icon-btn" data-nav="home" title="My documents" aria-label="My documents">
+          <svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg></button>
+        <button class="icon-btn" data-nav="settings" title="Settings" aria-label="Settings">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
+        <button class="icon-btn" id="logout-btn" title="Log out" aria-label="Log out">
+          <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg></button>
+      </nav>
+    </header>
+
+    <!-- Home: document list -->
+    <main id="home-view" class="container">
+      <section class="greeting">
+        <h2 id="greeting-text">Hello</h2>
+        <p class="muted" id="greeting-sub"></p>
+      </section>
+
+      <div id="sms-banner" class="banner" hidden>
+        <span>📱 Add your mobile number to get SMS reminders before documents expire.</span>
+        <button class="btn small" data-nav="settings">Set up</button>
+      </div>
+
+      <section class="summary" id="summary">
+        <button class="stat" data-filter="all"><b id="count-all">0</b><span>All</span></button>
+        <button class="stat expired" data-filter="expired"><b id="count-expired">0</b><span>Expired</span></button>
+        <button class="stat critical" data-filter="critical"><b id="count-critical">0</b><span>≤ 30 days</span></button>
+        <button class="stat soon" data-filter="soon"><b id="count-soon">0</b><span>≤ 90 days</span></button>
+        <button class="stat valid" data-filter="valid"><b id="count-valid">0</b><span>Valid</span></button>
+      </section>
+
+      <div class="toolbar">
+        <input id="search" type="search" placeholder="Search documents…" aria-label="Search documents">
+        <button class="btn" id="report-btn" title="Download a PDF of all documents">⬇ Full report</button>
+      </div>
+
+      <section id="doc-list" class="doc-list" aria-live="polite"></section>
+      <div id="empty-state" class="empty" hidden>
+        <img src="/icons/icon-192.png" alt="">
+        <h3>No documents yet</h3>
+        <p class="muted">Add your passport, driving licence, insurance or any document with an expiry date.</p>
+        <button class="btn primary" data-action="add">+ Add your first document</button>
+      </div>
+
+      <button class="fab" data-action="add" aria-label="Add document">+</button>
+    </main>
+
+    <!-- Settings -->
+    <main id="settings-view" class="container" hidden>
+      <h2>Settings</h2>
+
+      <section class="card">
+        <h3>📱 SMS reminders</h3>
+        <div id="phone-none">
+          <p class="muted">We'll text you before a document expires. Only the document name and date are sent — never the number.</p>
+          <form id="phone-form" class="row">
+            <input name="phone" type="tel" inputmode="tel" placeholder="077 123 4567" autocomplete="tel" required aria-label="Mobile number">
+            <button class="btn primary">Send code</button>
+          </form>
+        </div>
+        <div id="phone-verify" hidden>
+          <p>Enter the 6-digit code we sent to <b id="verify-to"></b>.</p>
+          <form id="verify-form" class="row">
+            <input name="code" inputmode="numeric" maxlength="6" pattern="\d{6}" placeholder="123456" autocomplete="one-time-code" required aria-label="Verification code">
+            <button class="btn primary">Verify</button>
+          </form>
+          <button class="link" id="change-phone">Use a different number</button>
+        </div>
+        <div id="phone-done" hidden>
+          <p>✅ Reminders go to <b id="phone-masked"></b></p>
+          <div class="row wrap">
+            <button class="btn" id="test-sms">Send test SMS</button>
+            <button class="btn danger-outline" id="remove-phone">Remove number</button>
+          </div>
+        </div>
+        <p class="hint" id="sms-mode-hint" hidden>Testing mode: SMS messages are printed in the terminal window instead of being sent.</p>
+      </section>
+
+      <section class="card">
+        <h3>⏰ When should we remind you?</h3>
+        <form id="settings-form">
+          <div class="chips" id="remind-days"></div>
+          <label class="switch"><input type="checkbox" name="smsEnabled"> <span>Send SMS reminders</span></label>
+          <button class="btn primary">Save</button>
+        </form>
+      </section>
+
+      <section class="card">
+        <h3>🔐 Privacy & security</h3>
+        <ul class="plain muted">
+          <li>Document numbers, names, issuers and notes are encrypted (AES-256).</li>
+          <li>PDFs are locked with your account password.</li>
+          <li>The app locks itself after 10 minutes without activity.</li>
+        </ul>
+        <div class="row wrap">
+          <button class="btn" id="logout-all">Log out of all devices</button>
+          <button class="btn" id="show-activity">Recent activity</button>
+        </div>
+        <ul id="activity" class="activity" hidden></ul>
+      </section>
+
+      <section class="card danger-zone">
+        <h3>Delete account</h3>
+        <p class="muted">Permanently removes your account, phone number and every document. This can't be undone.</p>
+        <button class="btn danger" id="delete-account">Delete my account</button>
+      </section>
+    </main>
+  </div>
+
+  <!-- ============ POP-UP WINDOWS ============ -->
+  <dialog id="doc-form-dialog" class="sheet">
+    <form id="doc-form" method="dialog" class="stack">
+      <header class="sheet-head"><h3 id="doc-form-title">Add document</h3><button type="button" class="icon-btn" data-close aria-label="Close">✕</button></header>
+      <label>Document type<select name="type" required></select></label>
+      <label>Label <small class="muted">(e.g. "Dad's passport")</small><input name="title" maxlength="80"></label>
+      <label>Expiry date<input name="expiryDate" type="date" required></label>
+      <label>Issue date <small class="muted">(optional – shows how much validity is used)</small><input name="issueDate" type="date"></label>
+      <label>Document number <small class="muted">(optional, encrypted)</small><input name="number" maxlength="50" autocomplete="off"></label>
+      <label>Name on document <small class="muted">(optional, encrypted)</small><input name="holder" maxlength="100" autocomplete="off"></label>
+      <label>Issued by <small class="muted">(optional, encrypted)</small><input name="issuer" maxlength="100" autocomplete="off"></label>
+      <label>Notes <small class="muted">(optional, encrypted)</small><textarea name="notes" rows="3" maxlength="1000"></textarea></label>
+      <p class="hint">🔒 Everything except the type, label and dates is encrypted before saving.</p>
+      <button class="btn primary" value="save">Save</button>
+    </form>
+  </dialog>
+
+  <dialog id="doc-detail-dialog" class="sheet">
+    <div id="doc-detail"></div>
+  </dialog>
+
+  <dialog id="password-dialog" class="small-dialog">
+    <form id="password-form" method="dialog" class="stack">
+      <h3 id="password-title">Confirm it's you</h3>
+      <p class="muted" id="password-msg"></p>
+      <input name="password" type="password" autocomplete="current-password" required aria-label="Password" placeholder="Your password">
+      <div class="row end">
+        <button type="button" class="btn" data-close>Cancel</button>
+        <button class="btn primary" id="password-ok" value="ok">Continue</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div id="toast" role="status" aria-live="polite"></div>
+</body>
+</html>

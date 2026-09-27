@@ -1,0 +1,6 @@
+node_modules/
+# Secrets and personal data — never upload these
+.env
+data/
+*.db
+*.db-*
